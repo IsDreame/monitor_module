@@ -566,8 +566,9 @@ public class MetricsController {
                 }
             }
         } catch (NumberFormatException e) {
-            System.err.println("解析GPU信息时发生数字格式异常: " + e.getMessage());
+            gpuInfo.put("error", "无CUDA配置: " + e.getMessage());
             e.printStackTrace();
+            System.err.println("解析GPU信息时发生数字格式异常: " + e.getMessage());
             gpuInfo.put("error", "无法解析GPU信息: " + e.getMessage());
             gpuInfo.put("gpuCount", 0);
         } catch (Exception e) {
