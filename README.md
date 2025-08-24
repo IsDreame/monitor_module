@@ -2,6 +2,11 @@
 
 这是一个基于Spring Boot的系统资源监控应用，可以监控CPU、内存、网络、GPU等系统资源使用情况。
 
+## UI页面
+![界面截图](image/1.png)
+![界面截图](image/2.png)
+![界面截图](image/3.png)
+
 ## 功能特性
 
 ### 系统资源监控
@@ -23,6 +28,31 @@
 ### 用户界面
 - 响应式Web界面，支持实时刷新
 - 通过WebSocket实现数据实时推送
+
+### 界面功能详情
+
+#### 系统资源监控区域
+- **CPU监控**: 系统CPU使用率、JVM进程CPU使用率
+- **内存监控**: 系统内存使用率、JVM堆内存使用率、非堆内存使用率
+- **网络监控**: 下载速度、上传速度、总接收和发送数据量
+- **GPU监控**: GPU使用率、GPU显存使用率、GPU显存已用和总计
+
+#### JVM监控区域
+- **线程信息**: 活动线程数、峰值线程数
+- **类加载信息**: 已加载类数量、已卸载类数量
+- **垃圾回收信息**: GC次数、GC时间、CPU核心数
+
+#### Docker容器监控区域
+- **容器列表**: 以卡片形式展示所有运行中的Docker容器
+- **容器详细信息**: 容器ID、状态、镜像、镜像大小等信息
+- **容器日志查看**: 点击"查看日志"按钮可查看特定容器的实时日志输出
+
+#### 实时更新功能区域
+- **自动刷新**: 通过WebSocket实现数据的实时推送和界面自动更新（每2秒刷新一次）
+- **手动刷新按钮**: 提供手动刷新数据的功能
+- **最后更新时间**: 显示数据最后更新的时间戳
+
+界面采用响应式设计，支持在不同屏幕尺寸下良好显示，使用现代化的渐变色彩和动画效果提升用户体验。
 
 ## 构建和部署
 
@@ -48,15 +78,10 @@ mvn clean package -DskipTests
 
 2. 构建Docker镜像:
 ```bash
-docker build -t acutor-module:latest .
+docker build -t monitor_module:latest .
 ```
 
 3. 启动容器:
-```bash
-docker run -d -p 80:8080 -v /var/run/docker.sock:/var/run/docker.sock --name acutor-module acutor-module:latest
-```
-
-或者使用Docker Compose:
 ```bash
 docker-compose up -d
 ```
@@ -75,7 +100,7 @@ docker-compose logs -f
 
 或者:
 ```bash
-docker logs -f acutor-module
+docker logs -f monitor_module-app
 ```
 
 ## 停止应用
@@ -86,8 +111,8 @@ docker-compose down
 
 或者:
 ```bash
-docker stop acutor-module
-docker rm acutor-module
+docker stop monitor_module-app
+docker rm monitor_module-app
 ```
 
 ## 系统要求
