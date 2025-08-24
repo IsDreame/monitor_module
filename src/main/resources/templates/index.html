@@ -1121,62 +1121,69 @@
             
             // 显示加载状态
             logsTitle.textContent = `容器日志: ${containerName}`;
-            logsContent.innerHTML = '<div class="loading">正在加载日志...</div>';
+            logsContent.innerHTML = '<div class="loading">正在连接实时日志...</div>';
             logsContainer.style.display = 'block';
             
             // 滚动到日志区域
             logsContainer.scrollIntoView({ behavior: 'smooth' });
             
-            // 对容器ID进行编码，防止特殊字符问题
-            const encodedContainerId = encodeURIComponent(containerId.trim());
-            console.log('请求日志接口，编码后的容器ID:', encodedContainerId);
+            // 关闭可能存在的旧连接
+            if (window.currentLogSocket) {
+                window.currentLogSocket.close();
+            }
             
-            fetch(`/metrics/docker/logs?containerId=${encodedContainerId}&lines=100`)
-                .then(response => {
-                    console.log('日志接口响应状态:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('日志接口返回数据:', data);
+            // 创建新的WebSocket连接用于实时日志
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const wsUrl = `${protocol}//${host}/ws/docker/logs?containerId=${encodeURIComponent(containerId)}`;
+            
+            try {
+                window.currentLogSocket = new WebSocket(wsUrl);
+                
+                window.currentLogSocket.onopen = function(event) {
+                    console.log('WebSocket日志连接已建立');
+                    logsContent.innerHTML = '<div class="loading">正在获取实时日志...</div>';
+                };
+                
+                window.currentLogSocket.onmessage = function(event) {
+                    const logLine = document.createElement('div');
+                    logLine.className = 'log-line';
+                    logLine.textContent = event.data;
+                    logsContent.appendChild(logLine);
                     
-                    if (data.error) {
-                        logsContent.innerHTML = `<div class="error-message">❌ ${data.error}</div>`;
-                        return;
+                    // 限制日志行数，避免内存占用过大
+                    if (logsContent.children.length > 1000) {
+                        logsContent.removeChild(logsContent.firstChild);
                     }
                     
-                    if (data.logs !== undefined) {
-                        const lines = data.logs.split('\n');
-                        let logsHTML = '';
-                        
-                        lines.forEach(line => {
-                            if (line.trim() !== '') {
-                                logsHTML += `<div class="log-line">${escapeHtml(line)}</div>`;
-                            }
-                        });
-                        
-                        if (logsHTML === '') {
-                            logsContent.innerHTML = '<div class="loading">暂无日志</div>';
-                        } else {
-                            logsContent.innerHTML = logsHTML;
-                            // 滚动到底部
-                            logsContent.scrollTop = logsContent.scrollHeight;
-                        }
-                    } else {
-                        logsContent.innerHTML = '<div class="loading">暂无日志</div>';
+                    // 自动滚动到底部
+                    logsContent.scrollTop = logsContent.scrollHeight;
+                };
+                
+                window.currentLogSocket.onerror = function(error) {
+                    console.error('WebSocket日志连接发生错误:', error);
+                    logsContent.innerHTML = `<div class="error-message">❌ WebSocket连接错误: ${error.message || '连接失败'}</div>`;
+                };
+                
+                window.currentLogSocket.onclose = function(event) {
+                    console.log('WebSocket日志连接已关闭:', event.code, event.reason);
+                    if (event.code !== 1000) { // 正常关闭以外的情况
+                        logsContent.innerHTML += `<div class="error-message">❌ 连接已关闭: ${event.reason || '未知原因'}</div>`;
                     }
-                })
-                .catch(error => {
-                    console.error('获取容器日志失败:', error);
-                    logsContent.innerHTML = 
-                        `<div class="error-message">❌ 获取日志失败: ${error.message}</div>`;
-                });
+                };
+            } catch (e) {
+                console.error('创建WebSocket连接时发生异常:', e);
+                logsContent.innerHTML = `<div class="error-message">❌ 创建连接失败: ${e.message}</div>`;
+            }
         }
 
         // 关闭日志显示
         function closeLogs() {
+            // 关闭WebSocket连接
+            if (window.currentLogSocket) {
+                window.currentLogSocket.close(1000, '用户主动关闭');
+                window.currentLogSocket = null;
+            }
             document.getElementById('logs-container').style.display = 'none';
         }
 
