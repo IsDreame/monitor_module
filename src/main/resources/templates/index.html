@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统资源实时监控</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #e63946;
+            --dark: #1d3557;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --border-radius: 12px;
+            --box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --fresh-green: #2a9d8f;
+            --fresh-blue: #457b9d;
+            --fresh-sand: #e9c46a;
+            --fresh-orange: #f4a261;
+            --fresh-coral: #e76f51;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            color: var(--dark);
+            animation: fadeInDown 1s ease;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--fresh-blue);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+            color: var(--dark);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            animation: fadeInUp 0.6s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .card-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--fresh-green), var(--fresh-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .card-title {
+            color: var(--dark);
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+        }
+
+        .metric-label::before {
+            content: "■";
+            color: var(--fresh-green);
+            margin-right: 10px;
+            font-size: 0.8rem;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .metric-percentage {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1.1rem;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .metric-bar-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .metric-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--fresh-green), var(--fresh-blue));
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .critical .metric-bar {
+            background: linear-gradient(90deg, var(--fresh-orange), var(--fresh-coral));
+        }
+
+        .warning .metric-bar {
+            background: linear-gradient(90deg, var(--fresh-sand), var(--fresh-orange));
+        }
+
+        .good .metric-bar {
+            background: linear-gradient(90deg, var(--fresh-green), #8ac926);
+        }
+
+        .info .metric-bar {
+            background: linear-gradient(90deg, var(--success), var(--fresh-blue));
+        }
+
+        .controls {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, var(--fresh-green), var(--fresh-blue));
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 6px 20px rgba(42, 157, 143, 0.4);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(42, 157, 143, 0.5);
+        }
+
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+
+        .last-update {
+            text-align: center;
+            color: var(--dark);
+            font-style: italic;
+            margin-top: 25px;
+            font-size: 1rem;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50px;
+            max-width: 500px;
+            margin: 0 auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .network-activity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .network-icon {
+            font-size: 1.3rem;
+        }
+
+        .download-speed {
+            color: var(--fresh-green);
+        }
+
+        .upload-speed {
+            color: var(--fresh-blue);
+        }
+
+        .network-speed-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .network-speed-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .network-speed-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            font-weight: 500;
+            margin-top: 3px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(42, 157, 143, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 12px rgba(42, 157, 143, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(42, 157, 143, 0);
+            }
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .data-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(42, 157, 143, 0.05);
+            border-radius: 8px;
+        }
+
+        .data-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--fresh-green);
+        }
+
+        .data-label {
+            font-size: 0.85rem;
+            color: var(--gray);
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-ok {
+            background-color: var(--fresh-green);
+        }
+
+        .status-warning {
+            background-color: var(--fresh-orange);
+        }
+
+        .status-critical {
+            background-color: var(--fresh-coral);
+        }
+
+        /* Docker容器日志相关样式 */
+        .docker-section {
+            margin-top: 30px;
+        }
+
+        .docker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .docker-title {
+            font-size: 1.8rem;
+            color: var(--fresh-blue);
+            font-weight: 700;
+        }
+
+        .refresh-docker-btn {
+            background: linear-gradient(135deg, var(--fresh-blue), var(--fresh-green));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .refresh-docker-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(69, 123, 157, 0.3);
+        }
+
+        .containers-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .container-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            border: 1px solid rgba(69, 123, 157, 0.2);
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* 允许卡片收缩以适应内容 */
+        }
+
+        .container-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(69, 123, 157, 0.2);
+        }
+
+        .container-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--fresh-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            word-break: break-all; /* 长名称自动换行 */
+        }
+
+        .container-name::before {
+            content: "🐳";
+            margin-right: 10px;
+        }
+
+        .container-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .container-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            word-break: break-word; /* 内容自动换行 */
+        }
+
+        .detail-label {
+            color: var(--gray);
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--dark);
+            text-align: right;
+            flex-grow: 1;
+        }
+
+        .view-logs-btn {
+            background: linear-gradient(135deg, var(--fresh-green), var(--fresh-blue));
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            width: 100%;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .view-logs-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(42, 157, 143, 0.3);
+        }
+
+        .logs-container {
+            background: #1e1e1e;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--box-shadow);
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            color: #d4d4d4;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .logs-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            word-break: break-word; /* 标题自动换行 */
+        }
+
+        .close-logs-btn {
+            background: var(--fresh-coral);
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .log-line {
+            margin: 5px 0;
+            line-height: 1.4;
+            word-break: break-word; /* 日志行自动换行 */
+        }
+
+        .log-line:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--fresh-blue);
+            font-style: italic;
+        }
+
+        .error-message {
+            color: var(--fresh-coral);
+            padding: 15px;
+            background: rgba(231, 111, 81, 0.1);
+            border-radius: 8px;
+            margin: 10px 0;
+            word-break: break-word; /* 错误信息自动换行 */
+        }
+
+        .docker-unavailable {
+            background: rgba(231, 111, 81, 0.1);
+            border: 1px solid var(--fresh-coral);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            color: var(--fresh-coral);
+            font-weight: 500;
+            margin: 20px 0;
+            word-break: break-word;
+        }
+
+        .docker-debug {
+            background: rgba(69, 123, 157, 0.1);
+            border: 1px solid var(--fresh-blue);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+
+        .docker-debug-title {
+            font-weight: bold;
+            color: var(--fresh-blue);
+            margin-bottom: 8px;
+        }
+
+        .docker-solution {
+            background: rgba(42, 157, 143, 0.1);
+            border: 1px solid var(--fresh-green);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 15px;
+            text-align: left;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+
+        .docker-solution-title {
+            font-weight: bold;
+            color: var(--fresh-green);
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ 系统资源监控面板</h1>
+            <p class="subtitle">实时监控计算机性能指标，确保系统稳定运行</p>
+        </header>
+
+        <div class="dashboard">
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        💻
+                    </div>
+                    <h2 class="card-title">CPU 使用情况</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">系统 CPU</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="system-cpu-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="system-cpu-percentage">0%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">JVM 进程</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="process-cpu-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="process-cpu-percentage">0%</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        💾
+                    </div>
+                    <h2 class="card-title">内存使用情况</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">系统内存</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="system-memory-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="system-memory-percentage">0%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">JVM 堆内存</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="heap-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="heap-percentage">0%</span>
+                </div>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-value" id="system-memory-used">0</div>
+                        <div class="data-label">已用 (MB)</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="system-memory-total">0</div>
+                        <div class="data-label">总计 (MB)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        🌐
+                    </div>
+                    <h2 class="card-title">网络监控</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">下载速度</span>
+                    <div class="network-activity">
+                        <div class="network-icon download-speed">⬇️</div>
+                        <div class="network-speed-container">
+                            <div class="network-speed-value download-speed" id="download-speed">0 KB/s</div>
+                            <div class="network-speed-label">实时下载</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">上传速度</span>
+                    <div class="network-activity">
+                        <div class="network-icon upload-speed">⬆️</div>
+                        <div class="network-speed-container">
+                            <div class="network-speed-value upload-speed" id="upload-speed">0 KB/s</div>
+                            <div class="network-speed-label">实时上传</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-value" id="total-received">0</div>
+                        <div class="data-label">接收 (MB)</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="total-sent">0</div>
+                        <div class="data-label">发送 (MB)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        🎮
+                    </div>
+                    <h2 class="card-title">GPU 使用情况</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">GPU 使用率</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="gpu-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="gpu-percentage">0%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">显存使用率</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="gpu-memory-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="gpu-memory-percentage">0%</span>
+                </div>
+                <div class="data-grid">
+                    <div class="data-item">
+                        <div class="data-value" id="gpu-memory-used">0</div>
+                        <div class="data-label">显存已用</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-value" id="gpu-memory-total">0</div>
+                        <div class="data-label">显存总计</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        ⚙️
+                    </div>
+                    <h2 class="card-title">JVM 信息</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">活动线程</span>
+                    <span class="metric-value" id="thread-count">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">峰值线程</span>
+                    <span class="metric-value" id="peak-thread-count">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">已加载类</span>
+                    <span class="metric-value" id="loaded-class-count">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">GC 次数</span>
+                    <span class="metric-value" id="gc-count">0</span>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="card-header">
+                    <div class="card-icon">
+                        🗑️
+                    </div>
+                    <h2 class="card-title">其他信息</h2>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">非堆内存</span>
+                    <div class="metric-bar-container">
+                        <div class="metric-bar" id="nonheap-bar" style="width: 0%;"></div>
+                    </div>
+                    <span class="metric-percentage" id="nonheap-percentage">0%</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">GC 时间</span>
+                    <span class="metric-value" id="gc-time">0 ms</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">已卸载类</span>
+                    <span class="metric-value" id="unloaded-class-count">0</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">CPU 核心</span>
+                    <span class="metric-value" id="cpu-cores">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Docker容器日志部分 -->
+        <div class="docker-section">
+            <div class="docker-header">
+                <h2 class="docker-title">🐳 Docker容器监控</h2>
+                <button class="refresh-docker-btn" onclick="fetchDockerContainers()">刷新容器列表</button>
+            </div>
+            
+            <div class="containers-list" id="containers-list">
+                <div class="loading">正在加载容器信息...</div>
+            </div>
+            
+            <div class="logs-container" id="logs-container" style="display: none;">
+                <div class="logs-header">
+                    <div class="logs-title" id="logs-title">容器日志</div>
+                    <button class="close-logs-btn" onclick="closeLogs()">关闭</button>
+                </div>
+                <div id="logs-content"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="refresh-btn pulse" onclick="fetchMetrics()">
+                🔄 刷新数据
+            </button>
+        </div>
+
+        <div class="last-update" id="last-update">最后更新: 从未</div>
+    </div>
+
+    <script>
+        // 初始化时获取一次数据
+        window.onload = function() {
+            fetchMetrics();
+            fetchDockerContainers();
+        };
+
+        function fetchMetrics() {
+            fetch('/metrics/system')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应错误: ' + response.status + ' ' + response.statusText);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 检查是否有全局错误
+                    if (data.error) {
+                        console.error('服务器端错误:', data.error);
+                        document.getElementById('last-update').innerHTML = 
+                            '<span style="color: #e63946;">❌ 错误: ' + data.error + '</span>';
+                        return;
+                    }
+                    
+                    // 更新系统 CPU 使用率
+                    const systemCpuUsage = Math.round(data.systemCpuLoadPercent);
+                    document.getElementById('system-cpu-bar').style.width = (systemCpuUsage || 0) + '%';
+                    document.getElementById('system-cpu-percentage').textContent = (systemCpuUsage || 0) + '%';
+                    
+                    // 更新 JVM 进程 CPU 使用率
+                    const processCpuUsage = Math.round(data.processCpuLoadPercent);
+                    document.getElementById('process-cpu-bar').style.width = (processCpuUsage || 0) + '%';
+                    document.getElementById('process-cpu-percentage').textContent = (processCpuUsage || 0) + '%';
+                    
+                    // 更新 GPU 使用率
+                    if (data.gpuInfo && data.gpuInfo.gpuCount > 0) {
+                        const gpuUtilization = data.gpuInfo.gpuUtilization || 0;
+                        document.getElementById('gpu-bar').style.width = gpuUtilization + '%';
+                        document.getElementById('gpu-percentage').textContent = gpuUtilization + '%';
+                        
+                        // 更新 GPU 显存使用率
+                        const gpuMemoryUtilization = data.gpuInfo.gpuMemoryUtilization || 0;
+                        document.getElementById('gpu-memory-bar').style.width = gpuMemoryUtilization + '%';
+                        document.getElementById('gpu-memory-percentage').textContent = gpuMemoryUtilization + '%';
+                        
+                        // 更新 GPU 显存信息
+                        const gpuMemoryUsed = data.gpuInfo.gpuMemoryUsed || 0;
+                        const gpuMemoryTotal = data.gpuInfo.gpuMemoryTotal || 0;
+                        document.getElementById('gpu-memory-used').textContent = gpuMemoryUsed;
+                        document.getElementById('gpu-memory-total').textContent = gpuMemoryTotal;
+                    } else {
+                        // 没有检测到GPU或无法获取GPU信息
+                        document.getElementById('gpu-bar').style.width = '0%';
+                        document.getElementById('gpu-percentage').textContent = 'N/A';
+                        document.getElementById('gpu-memory-bar').style.width = '0%';
+                        document.getElementById('gpu-memory-percentage').textContent = 'N/A';
+                        document.getElementById('gpu-memory-used').textContent = 'N/A';
+                        document.getElementById('gpu-memory-total').textContent = 'N/A';
+                    }
+                    
+                    // 更新系统内存使用情况
+                    const systemMemoryUsage = Math.round(data.systemMemoryUsagePercent);
+                    document.getElementById('system-memory-bar').style.width = (systemMemoryUsage || 0) + '%';
+                    document.getElementById('system-memory-percentage').textContent = (systemMemoryUsage || 0) + '%';
+                    
+                    // 更新系统内存信息
+                    const usedPhysicalMemory = data.usedPhysicalMemoryMB || 0;
+                    const totalPhysicalMemory = data.totalPhysicalMemoryMB || 0;
+                    document.getElementById('system-memory-used').textContent = Math.round(usedPhysicalMemory);
+                    document.getElementById('system-memory-total').textContent = Math.round(totalPhysicalMemory);
+                    
+                    // 更新网络速度信息
+                    if (data.networkSpeed && !data.networkSpeed.error) {
+                        const receivedKbps = data.networkSpeed.receivedKbps || 0;
+                        const sentKbps = data.networkSpeed.sentKbps || 0;
+                        const totalReceivedMB = data.networkSpeed.totalReceivedMB || 0;
+                        const totalSentMB = data.networkSpeed.totalSentMB || 0;
+                        
+                        document.getElementById('download-speed').textContent = receivedKbps.toFixed(2) + ' KB/s';
+                        document.getElementById('upload-speed').textContent = sentKbps.toFixed(2) + ' KB/s';
+                        document.getElementById('total-received').textContent = totalReceivedMB.toFixed(2);
+                        document.getElementById('total-sent').textContent = totalSentMB.toFixed(2);
+                    } else {
+                        // 网络速度信息不可用
+                        if (data.networkSpeed && data.networkSpeed.error) {
+                            console.warn('网络速度获取失败:', data.networkSpeed.error);
+                        }
+                        document.getElementById('download-speed').textContent = 'N/A';
+                        document.getElementById('upload-speed').textContent = 'N/A';
+                        document.getElementById('total-received').textContent = 'N/A';
+                        document.getElementById('total-sent').textContent = 'N/A';
+                    }
+                    
+                    // 更新堆内存使用率
+                    const heapUsage = Math.round(data.heapUsagePercent);
+                    document.getElementById('heap-bar').style.width = (heapUsage || 0) + '%';
+                    document.getElementById('heap-percentage').textContent = (heapUsage || 0) + '%';
+                    
+                    // 更新非堆内存使用率
+                    const nonHeapUsedMB = data.nonHeapUsedMB || 0;
+                    // 简化处理非堆内存使用率
+                    const nonheapUsage = Math.min(100, Math.round(nonHeapUsedMB));
+                    document.getElementById('nonheap-bar').style.width = nonheapUsage + '%';
+                    document.getElementById('nonheap-percentage').textContent = nonheapUsage + '%';
+                    
+                    // 更新线程信息
+                    document.getElementById('thread-count').textContent = data.threadCount || 'N/A';
+                    document.getElementById('peak-thread-count').textContent = data.peakThreadCount || 'N/A';
+                    
+                    // 更新类加载信息
+                    document.getElementById('loaded-class-count').textContent = data.loadedClassCount || 'N/A';
+                    document.getElementById('unloaded-class-count').textContent = data.unloadedClassCount || 'N/A';
+                    
+                    // 更新 GC 信息
+                    document.getElementById('gc-count').textContent = data.totalGcCount || 'N/A';
+                    document.getElementById('gc-time').textContent = (data.totalGcTime || 0) + ' ms';
+                    
+                    // 更新 CPU 核心数
+                    document.getElementById('cpu-cores').textContent = data.availableProcessors || 'N/A';
+                    
+                    // 更新最后更新时间
+                    document.getElementById('last-update').textContent = '最后更新: ' + new Date().toLocaleString();
+                })
+                .catch(error => {
+                    console.error('获取系统指标失败:', error);
+                    document.getElementById('last-update').innerHTML = 
+                        '<span style="color: #e63946;">❌ 获取系统指标失败: ' + error.message + '</span>';
+                });
+        }
+
+        // 获取Docker容器列表
+        function fetchDockerContainers() {
+            fetch('/metrics/docker/containers')
+                .then(response => response.json())
+                .then(data => {
+                    const containersList = document.getElementById('containers-list');
+                    
+                    // 显示调试信息
+                    console.log('Docker容器数据:', data);
+                    
+                    // 检查Docker是否可用
+                    if (!data.dockerAvailable) {
+                        let html = `
+                            <div class="docker-unavailable">
+                                <p>🐳 Docker不可用</p>
+                                <p>请确保已安装Docker并正在运行</p>
+                                <p><small>错误信息: ${data.error || '未知错误'}</small></p>
+                        `;
+                        
+                        // 显示操作系统信息
+                        if (data.osName) {
+                            html += `<div class="docker-debug"><div class="docker-debug-title">操作系统:</div>${data.osName}</div>`;
+                        }
+                        
+                        // 显示Docker套接字信息
+                        if (data.dockerSocketExists !== undefined) {
+                            html += `<div class="docker-debug"><div class="docker-debug-title">Docker套接字存在:</div>${data.dockerSocketExists ? '是' : '否'}</div>`;
+                        }
+                        
+                        // 显示守护进程检查错误
+                        if (data.daemonCheckError) {
+                            html += `<div class="docker-debug"><div class="docker-debug-title">守护进程检查错误:</div>${data.daemonCheckError}</div>`;
+                        }
+                        
+                        // 如果有解决方案信息，则显示
+                        if (data.solution) {
+                            html += `
+                                <div class="docker-solution">
+                                    <div class="docker-solution-title">💡 解决方案:</div>
+                                    ${data.solution}
+                                </div>
+                            `;
+                        }
+                        
+                        // 如果有调试信息，则显示
+                        if (data.debug) {
+                            html += `
+                                <div class="docker-debug">
+                                    <div class="docker-debug-title">调试信息:</div>
+                                    ${data.debug}
+                                </div>
+                            `;
+                        }
+                        
+                        if (data.debugInfo) {
+                            html += `
+                                <div class="docker-debug">
+                                    <div class="docker-debug-title">详细信息:</div>
+                                    ${data.debugInfo}
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div>`;
+                        containersList.innerHTML = html;
+                        return;
+                    }
+                    
+                    if (data.error) {
+                        containersList.innerHTML = `<div class="error-message">❌ ${data.error}</div>`;
+                        return;
+                    }
+                    
+                    if (data.containerCount === 0) {
+                        containersList.innerHTML = '<div class="loading">没有运行中的容器</div>';
+                        return;
+                    }
+
+                    try {
+                        // 直接使用容器数组，无需JSON.parse
+                        const containers = data.containers;
+                        let containersHTML = '';
+                        console.log('Docker容器数据containers:', containers)
+                        containers.forEach(container => {
+                            // 确保容器ID存在且不为空
+                            if (!container.id || container.id.trim() === '') {
+                                console.warn('发现无效容器ID:', container);
+                                return; // 跳过无效容器
+                            }
+                            
+                            // 清理可能存在的多余引号和转义字符
+                            const cleanId = container.id.replace(/^"|"$/g, '').replace(/\\"/g, '"');
+                            const cleanName = (container.name || '未知容器').replace(/^"|"$/g, '').replace(/\\"/g, '"');
+                            const cleanStatus = (container.status || '未知状态').replace(/^"|"$/g, '').replace(/\\"/g, '"');
+                            const cleanImage = (container.image || '未知镜像').replace(/^"|"$/g, '').replace(/\\"/g, '"');
+                            
+                            console.log('处理容器:', container);
+                            
+                            // 使用数据属性存储容器ID和名称，避免在onclick中直接使用可能包含特殊字符的值
+                            containersHTML += `
+                                <div class="container-card">
+                                    <div class="container-name">${cleanName}</div>
+                                    <div class="container-info">
+                                        <div class="container-detail">
+                                            <span class="detail-label">ID:</span>
+                                            <span class="detail-value">${cleanId.substring(0, 12) || '未知ID'}</span>
+                                        </div>
+                                        <div class="container-detail">
+                                            <span class="detail-label">状态:</span>
+                                            <span class="detail-value">${cleanStatus}</span>
+                                        </div>
+                                        <div class="container-detail">
+                                            <span class="detail-label">镜像:</span>
+                                            <span class="detail-value">${cleanImage}</span>
+                                        </div>
+                                    </div>
+                                    <button class="view-logs-btn" data-container-id="${cleanId}" data-container-name="${cleanName}">
+                                        查看日志
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        
+                        containersList.innerHTML = containersHTML;
+                        console.log('容器列表HTML已更新');
+                        
+                        // 为所有"查看日志"按钮添加事件监听器
+                        document.querySelectorAll('.view-logs-btn').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const containerId = this.getAttribute('data-container-id');
+                                const containerName = this.getAttribute('data-container-name');
+                                console.log('按钮点击事件触发，容器ID:', containerId, '容器名称:', containerName);
+                                fetchContainerLogs(containerId, containerName);
+                            });
+                        });
+                    } catch (e) {
+                        containersList.innerHTML = `<div class="error-message">解析容器信息失败: ${e.message}</div>
+                                                    <div class="docker-debug">原始数据: ${data.containers}</div>`;
+                        console.error('容器信息解析失败:', e);
+                        console.log('原始数据:', data.containers);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取Docker容器信息失败:', error);
+                    document.getElementById('containers-list').innerHTML = 
+                        `<div class="error-message">❌ 获取容器信息失败: ${error.message}</div>`;
+                });
+        }
+
+        // 获取容器日志
+        function fetchContainerLogs(containerId, containerName) {
+            console.log('点击查看日志按钮，容器ID:', containerId, '容器名称:', containerName);
+            
+            // 验证参数
+            if (!containerId || containerId.trim() === '') {
+                console.error('容器ID为空或无效');
+                alert('容器ID无效');
+                return;
+            }
+            
+            const logsContainer = document.getElementById('logs-container');
+            const logsContent = document.getElementById('logs-content');
+            const logsTitle = document.getElementById('logs-title');
+            
+            // 显示加载状态
+            logsTitle.textContent = `容器日志: ${containerName}`;
+            logsContent.innerHTML = '<div class="loading">正在加载日志...</div>';
+            logsContainer.style.display = 'block';
+            
+            // 滚动到日志区域
+            logsContainer.scrollIntoView({ behavior: 'smooth' });
+            
+            // 对容器ID进行编码，防止特殊字符问题
+            const encodedContainerId = encodeURIComponent(containerId.trim());
+            console.log('请求日志接口，编码后的容器ID:', encodedContainerId);
+            
+            fetch(`/metrics/docker/logs?containerId=${encodedContainerId}&lines=100`)
+                .then(response => {
+                    console.log('日志接口响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('日志接口返回数据:', data);
+                    
+                    if (data.error) {
+                        logsContent.innerHTML = `<div class="error-message">❌ ${data.error}</div>`;
+                        return;
+                    }
+                    
+                    if (data.logs !== undefined) {
+                        const lines = data.logs.split('\n');
+                        let logsHTML = '';
+                        
+                        lines.forEach(line => {
+                            if (line.trim() !== '') {
+                                logsHTML += `<div class="log-line">${escapeHtml(line)}</div>`;
+                            }
+                        });
+                        
+                        if (logsHTML === '') {
+                            logsContent.innerHTML = '<div class="loading">暂无日志</div>';
+                        } else {
+                            logsContent.innerHTML = logsHTML;
+                            // 滚动到底部
+                            logsContent.scrollTop = logsContent.scrollHeight;
+                        }
+                    } else {
+                        logsContent.innerHTML = '<div class="loading">暂无日志</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取容器日志失败:', error);
+                    logsContent.innerHTML = 
+                        `<div class="error-message">❌ 获取日志失败: ${error.message}</div>`;
+                });
+        }
+
+        // 关闭日志显示
+        function closeLogs() {
+            document.getElementById('logs-container').style.display = 'none';
+        }
+
+        // 转义HTML特殊字符
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // 每2秒自动刷新一次数据（实现实时刷新）
+        setInterval(fetchMetrics, 2000);
+        
+        // 每30秒刷新一次Docker容器列表
+        setInterval(fetchDockerContainers, 30000);
+    </script>
+</body>
+</html>
