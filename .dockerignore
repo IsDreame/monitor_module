@@ -1,0 +1,25 @@
+# 排除Git目录
+.git
+.gitignore
+
+# 排除IDE相关文件
+.idea/
+*.iml
+*.iws
+out/
+target/
+
+# 排除日志文件
+*.log
+
+# 排除临时文件
+tmp/
+temp/
+
+# 排除Maven相关文件
+.mvn/wrapper/maven-wrapper.properties
+!mvnw
+!mvnw.cmd
+
+# 排除测试相关文件
+src/test/
