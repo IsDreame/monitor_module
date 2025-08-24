@@ -1,4 +1,4 @@
-package cn.nebulaedata.cccs.acutor_module.controller;
+package cn.nebulaedata.cccs.acutor_module.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;

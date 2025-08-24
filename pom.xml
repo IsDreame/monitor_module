@@ -10,10 +10,10 @@
     </parent>
 
     <groupId>cn.nebulaedata.cccs</groupId>
-    <artifactId>acutor_module</artifactId>
+    <artifactId>monitor_module</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>acutor_module</name>
-    <description>acutor_module</description>
+    <name>monitor_module</name>
+    <description>monitor_module</description>
     <url/>
 
     <!-- 建议添加编译版本属性 -->

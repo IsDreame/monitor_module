@@ -4,13 +4,25 @@
 
 ## 功能特性
 
+### 系统资源监控
 - 实时监控CPU使用率（系统和JVM进程）
 - 实时监控内存使用情况（系统和JVM内存）
 - 实时监控网络速度（下载和上传速度）
 - GPU使用情况监控（支持NVIDIA显卡）
-- JVM线程、类加载、垃圾回收等信息监控
-- Docker容器监控（容器列表和实时日志查看）
+
+### JVM监控
+- JVM线程信息监控
+- 类加载情况监控
+- 垃圾回收(GC)信息监控
+
+### Docker容器监控
+- Docker容器列表查看
+- Docker容器实时日志查看
+- 容器状态监控
+
+### 用户界面
 - 响应式Web界面，支持实时刷新
+- 通过WebSocket实现数据实时推送
 
 ## 构建和部署
 
@@ -96,15 +108,13 @@ docker rm acutor-module
 7. Dockerfile设计为直接复制已构建的jar包，需要先执行Maven构建
 8. 通过挂载/var/run/docker.sock，容器内的应用可以与宿主机的Docker守护进程通信
 9. 在某些Linux发行版中，可能需要将运行容器的用户添加到docker组以获得访问权限
-10. 如果遇到权限问题，可以在docker run命令中添加--privileged参数，或在docker-compose.yml中添加privileged: true配置
-11. 在Linux系统上运行时，确保Docker服务正在运行：sudo systemctl status docker
-12. 如果遇到"permission denied"错误，请尝试以下解决方案：
+10. 如果遇到"permission denied"错误，请尝试以下解决方案：
     - 将当前用户添加到docker组：`sudo usermod -aG docker $USER`
     - 重启Docker服务：`sudo systemctl restart docker`
     - 使用具有足够权限的用户运行容器
     - 检查/var/run/docker.sock文件的权限设置
     - 在docker-compose.yml中添加privileged: true配置项
     - 在docker run命令中添加--privileged参数
-13. 如果添加用户到docker组后仍然遇到权限问题，请尝试注销并重新登录，或者运行newgrp docker命令
-14. 如果以上方法都不起作用，可以检查Docker套接字文件的权限：ls -l /var/run/docker.sock
-15. 确保宿主机上的Docker服务正在运行：sudo systemctl status docker
+11. 如果添加用户到docker组后仍然遇到权限问题，请尝试注销并重新登录，或者运行newgrp docker命令
+12. 如果以上方法都不起作用，可以检查Docker套接字文件的权限：ls -l /var/run/docker.sock
+13. 确保宿主机上的Docker服务正在运行：sudo systemctl status docker
