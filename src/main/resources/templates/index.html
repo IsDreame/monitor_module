@@ -1045,6 +1045,7 @@
                             const cleanName = (container.name || '未知容器').replace(/^"|"$/g, '').replace(/\\"/g, '"');
                             const cleanStatus = (container.status || '未知状态').replace(/^"|"$/g, '').replace(/\\"/g, '"');
                             const cleanImage = (container.image || '未知镜像').replace(/^"|"$/g, '').replace(/\\"/g, '"');
+                            const cleanImageSize = (container.imageSize || '未知大小').replace(/^"|"$/g, '').replace(/\\"/g, '"');
                             
                             console.log('处理容器:', container);
                             
@@ -1064,6 +1065,10 @@
                                         <div class="container-detail">
                                             <span class="detail-label">镜像:</span>
                                             <span class="detail-value">${cleanImage}</span>
+                                        </div>
+                                        <div class="container-detail">
+                                            <span class="detail-label">镜像大小:</span>
+                                            <span class="detail-value">${cleanImageSize}</span>
                                         </div>
                                     </div>
                                     <button class="view-logs-btn" data-container-id="${cleanId}" data-container-name="${cleanName}">

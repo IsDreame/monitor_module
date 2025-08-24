@@ -254,6 +254,41 @@ public class MetricsController {
                     return ResponseEntity.ok(result);
                 }
                 
+                // 获取镜像大小信息
+                Map<String, String> imageSizes = new HashMap<>();
+                try {
+                    Process imagesProcess = Runtime.getRuntime().exec("docker images --format \"{{.Repository}}:{{.Tag}}|{{.Size}}\"");
+                    BufferedReader imagesReader = new BufferedReader(new InputStreamReader(imagesProcess.getInputStream()));
+                    
+                    String imageLine;
+                    while ((imageLine = imagesReader.readLine()) != null) {
+                        String[] imageParts = imageLine.split("\\|");
+                        if (imageParts.length >= 2) {
+                            String imageName = imageParts[0].trim();
+                            String imageSize = imageParts[1].trim();
+                            imageSizes.put(imageName, imageSize);
+                        }
+                    }
+                    
+                    imagesProcess.waitFor();
+                    imagesReader.close();
+                } catch (Exception e) {
+                    System.err.println("获取镜像大小信息时发生异常: " + e.getMessage());
+                    e.printStackTrace();
+                }
+                
+                // 为每个容器添加镜像大小信息
+                for (Map<String, String> container : containers) {
+                    String image = container.get("image");
+                    if (imageSizes.containsKey(image)) {
+                        container.put("imageSize", imageSizes.get(image));
+                    } else {
+                        // 尝试查找不带标签的镜像
+                        String imageWithoutTag = image.contains(":") ? image.substring(0, image.lastIndexOf(":")) : image;
+                        container.put("imageSize", imageSizes.getOrDefault(imageWithoutTag, "未知"));
+                    }
+                }
+                
                 result.put("containerCount", containers.size());
                 // 直接返回容器数组而不是JSON字符串
                 result.put("containers", containers);
@@ -281,35 +316,10 @@ public class MetricsController {
             String errorMsg = "获取容器信息时发生错误: " + e.getMessage();
             System.err.println(errorMsg);
             e.printStackTrace();
+            
             result.put("error", errorMsg);
-            result.put("debug", "原始数据: " + e.getMessage());
-            
-            // 特别处理权限相关的异常
-            if (e.getMessage() != null && 
-                (e.getMessage().contains("Permission denied") || 
-                 e.getMessage().contains("permission denied") ||
-                 e.getMessage().contains("Got permission denied"))) {
-                result.put("solution", "Docker权限被拒绝。请按以下步骤检查和解决问题：\n" +
-                          "1. 确保容器已正确挂载Docker套接字:\n" +
-                          "   - 在docker-compose.yml中添加: volumes:\n" +
-                          "   - 添加: - /var/run/docker.sock:/var/run/docker.sock\n\n" +
-                          "2. 确保容器用户已添加到docker组:\n" +
-                          "   - 在Dockerfile中添加: adduser appuser docker\n\n" +
-                          "3. 在docker-compose.yml中添加group_add配置:\n" +
-                          "   - 添加: group_add:\n" +
-                          "   - 添加: - 999  # docker组的标准GID\n\n" +
-                          "4. 或者使用privileged模式运行容器（不推荐生产环境）:\n" +
-                          "   - 在docker-compose.yml中添加: privileged: true\n\n" +
-                          "5. 重启Docker服务:\n" +
-                          "   - 运行: sudo systemctl restart docker\n\n" +
-                          "6. 检查/var/run/docker.sock文件权限:\n" +
-                          "   - 运行: sudo chmod 666 /var/run/docker.sock\n\n" +
-                          "7. 将当前用户添加到docker组（在宿主机上执行）:\n" +
-                          "   - 运行: sudo usermod -aG docker $USER\n" +
-                          "   - 然后注销并重新登录");
-            }
-            
-            result.put("dockerCheck", checkDockerAvailability());
+            result.put("dockerAvailable", false);
+            result.put("debug", "Exception: " + e.getClass().getName() + ": " + e.getMessage());
         }
         
         return ResponseEntity.ok(result);
